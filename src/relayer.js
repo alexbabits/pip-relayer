@@ -159,8 +159,7 @@ async function fulfillWithdrawRequests(sessionString, provider) {
             console.log(`Proof valid & profitable but gas request was too high for messageID ${message.id}`);
             continue;
         }
-        console.log(proofValidAndUnused);
-        console.log(profitable);
+
         // Execute the withdraw on behalf of recipient
         try {
             console.log("current gas cost (GWEI)", currentGasPrice.maxFeePerGas);
