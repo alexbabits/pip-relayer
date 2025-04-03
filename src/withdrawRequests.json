@@ -1,5 +1,18 @@
 {
   "processedIds": {
-    "85": "fulfilled"
+    "85": "fulfilled",
+    "88": "invalid_proof",
+    "89": "fulfilled",
+    "90": "fulfilled",
+    "91": "unprofitable",
+    "92": "unprofitable",
+    "93": "gas_too_high",
+    "94": "invalid_proof",
+    "95": "fulfilled",
+    "96": "invalid_proof",
+    "97": "unprofitable",
+    "98": "fulfilled",
+    "99": "fulfilled",
+    "100": "fulfilled"
   }
 }

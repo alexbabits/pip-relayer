@@ -23,14 +23,11 @@ const wallet = new ethers.Wallet(process.env.PK, provider);
 const pipABI = JSON.parse(fs.readFileSync(new URL("../abi/PipABI.json", import.meta.url), "utf-8"));
 
 const poolInfo = {
-    "0xd70be32c0443C0D6A615024D2A8fa28B8f98EF70": { value: 10000000000000000000000000n, token: "PLS", price: 0.00002}, // 1e18 @audit 10M PLS
+    "0xd70be32c0443C0D6A615024D2A8fa28B8f98EF70": { value: 1000000000000000000n, token: "PLS", price: 0.00002}, // 1e18 
     "0x78Ad604F0BCB61Ef683e13C3fA7D87F5dA3aa953": { value: 1000000000000000000000n, token: "PLS", price: 0.00002 }, // 1000e18
-  
     "0xab54D57BDb3b9f76aFD3516b548331e9B57a7EA6": { value: 1000000000000000000n, token: "PLSX", price: 0.00002 }, // 1e18
     "0xf95ACA5A28523cC9181e8aB7E6601F8626a033B2": { value: 100000000000000000000n, token: "PLSX", price: 0.00002 }, // 100e18
-  
     "0xfBB5Dcba8a198B3e8cc12d1AE73d1B92f0d3b355": { value: 100000000n, token: "EHEX", price: 0.002 }, // 1e8
-  
     "0x8904B6B17D0664B30608bA2b2a024cdf2745CBB3": { value: 10000000000000000n, token: "INC", price: 1 }, // 1e16
 };
 
@@ -85,6 +82,7 @@ async function fulfillWithdrawRequests(sessionString, provider) {
                 _minId = Math.min(...failedWithdrawIds);
                 console.log(`Starting from smallest failed withdrawal ID: ${_minId}`);
             // Otherwise, we can start with the highest overall messageId that has been processed.
+            // (Since all stored requests at this point will be one of: {fulfilled, invalid_proof, gas_too_high, unprofitable}})
             } else {
                 const messageIds = Object.keys(withdrawRequests.processedIds).map(id => parseInt(id));
                 _minId = Math.max(...messageIds);
@@ -105,10 +103,6 @@ async function fulfillWithdrawRequests(sessionString, provider) {
     const channel = await client.getEntity("pulseinprivate");
     const messages = await client.getMessages(channel, {minId: _minId, limit: 10000});
 
-    // Fetch current GWEI only once for historic messages, simplicity/reduced stress on RPC.
-    // Might get stale if running this for the first time and there are alot of messages that can be fulfilled 
-    let currentGasPrice = await provider.getFeeData();
-
     // 3. Process messages
     for (const message of messages) {
         if (!message.message) continue; // skip undefined/deleted messages
@@ -127,7 +121,7 @@ async function fulfillWithdrawRequests(sessionString, provider) {
             fee: msg.fee,
             nullifierHash: msg.nullifierHash,
             root: msg.root
-        }
+        } 
         
         // Check proof validity
         const proofValidAndUnused = await pool.checkProof(msg.proof, pubSignals);
@@ -139,19 +133,24 @@ async function fulfillWithdrawRequests(sessionString, provider) {
         }
 
         // Calculate profit of fulfilling withdraw request 
+        let currentGasPrice = await provider.getFeeData();
+        console.log(`Gas price for messageID ${message.id} is ${currentGasPrice.maxFeePerGas}`);
         const { profitable, profitUSD, feeUSD, costUSD } = await calculateProfit(
             msg.poolAddress, 
             BigInt(msg.gas), // Ex: 42000000000000000000 = 42 PLS
             BigInt(msg.fee), // Ex: 69 = 0.69%
             currentGasPrice.maxFeePerGas // Ex: 5868615848007086n wei = 5.87M GWEI
         );
+        console.log(`Fee earned (USD): ${feeUSD}`);
+        console.log(`Cost to fulfill (USD): ${costUSD}`);
+        console.log(`Net Profit (USD): ${profitUSD}`);
         if (!profitable) {
             withdrawRequests.processedIds[message.id] = "unprofitable";
             fs.writeFileSync(withdrawRequestsPath, JSON.stringify(withdrawRequests, null, 2));
             console.log(`Proof was valid but recipient's fee offer was unprofitable for messageID ${message.id}`);
             continue;
         }
-
+        
         // Optional: Don't fulfill absurd gas requests (1M+ PLS)
         if (BigInt(msg.gas) > 1000000000000000000000000n) {
             withdrawRequests.processedIds[message.id] = "gas_too_high";
@@ -195,8 +194,6 @@ async function fulfillWithdrawRequests(sessionString, provider) {
         console.log(`New message received - ID: ${message.id}`);
 
         try {
-            // fresh gas price for each new live message
-            currentGasPrice = await provider.getFeeData();
 
             const msg = JSON.parse(message.message);
             const pool = new ethers.Contract(msg.poolAddress, pipABI, wallet);
@@ -219,12 +216,16 @@ async function fulfillWithdrawRequests(sessionString, provider) {
             } 
 
             // Calculate profit of fulfilling withdraw request 
+            let currentGasPrice = await provider.getFeeData();
             const { profitable, profitUSD, feeUSD, costUSD } = await calculateProfit(
                 msg.poolAddress, 
                 BigInt(msg.gas),
                 BigInt(msg.fee),
                 currentGasPrice.maxFeePerGas
             );
+            console.log(`Fee earned (USD): ${feeUSD}`);
+            console.log(`Cost to fulfill (USD): ${costUSD}`);
+            console.log(`Net Profit (USD): ${profitUSD}`);
             if (!profitable) {
                 withdrawRequests.processedIds[message.id] = "unprofitable";
                 fs.writeFileSync(withdrawRequestsPath, JSON.stringify(withdrawRequests, null, 2));
@@ -232,7 +233,7 @@ async function fulfillWithdrawRequests(sessionString, provider) {
                 return;
             }
 
-            // Check for absurd gas requests
+            // Optional: Don't fulfill absurd gas requests (1M+ PLS)
             if (BigInt(msg.gas) > 1000000000000000000000000n) {
                 withdrawRequests.processedIds[message.id] = "gas_too_high";
                 fs.writeFileSync(withdrawRequestsPath, JSON.stringify(withdrawRequests, null, 2));
