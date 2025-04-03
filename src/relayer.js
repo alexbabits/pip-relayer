@@ -23,12 +23,30 @@ const wallet = new ethers.Wallet(process.env.PK, provider);
 const pipABI = JSON.parse(fs.readFileSync(new URL("../abi/PipABI.json", import.meta.url), "utf-8"));
 
 const poolInfo = {
-    "0xd70be32c0443C0D6A615024D2A8fa28B8f98EF70": { value: 1000000000000000000n, token: "PLS", price: 0.00002}, // 1e18 
-    "0x78Ad604F0BCB61Ef683e13C3fA7D87F5dA3aa953": { value: 1000000000000000000000n, token: "PLS", price: 0.00002 }, // 1000e18
-    "0xab54D57BDb3b9f76aFD3516b548331e9B57a7EA6": { value: 1000000000000000000n, token: "PLSX", price: 0.00002 }, // 1e18
-    "0xf95ACA5A28523cC9181e8aB7E6601F8626a033B2": { value: 100000000000000000000n, token: "PLSX", price: 0.00002 }, // 100e18
-    "0xfBB5Dcba8a198B3e8cc12d1AE73d1B92f0d3b355": { value: 100000000n, token: "EHEX", price: 0.002 }, // 1e8
-    "0x8904B6B17D0664B30608bA2b2a024cdf2745CBB3": { value: 10000000000000000n, token: "INC", price: 1 }, // 1e16
+    "0x487ab5De5e8bEC9cb593fA7B587503c52E451520": { value: 10000000000000000000000000n, token: "PLS", price: 0.00002}, // 10Me18 
+    "0x83953319D11F17dE24C89Cbfb580B69Ef3c3B9A6": { value: 100000000000000000000000000n, token: "PLS", price: 0.00002}, // 100Me18 
+    "0x9Cf56Cb9198321A4bdE35bd11973E32Ef1A047b4": { value: 300000000000000000000000000n, token: "PLS", price: 0.00002}, // 300Me18 
+    "0xee1f3875Ec9A8d90bd47351E8509dbb4550BF4A7": { value: 1000000000000000000000000000n, token: "PLS", price: 0.00002}, // 1Be18 
+
+    "0x16ABdB6c69726a7a570265F0975ecb7f66Fed624": { value: 10000000000000000000000000n, token: "PLSX", price: 0.00002}, // 10Me18 
+    "0xbFeFe59a8B0d52892F93841A97Bd90B3d39Af20C": { value: 100000000000000000000000000n, token: "PLSX", price: 0.00002}, // 100Me18 
+    "0x691F31938EE3A1d7Bad242517d42Da4d16226b5f": { value: 300000000000000000000000000n, token: "PLSX", price: 0.00002}, // 300Me18 
+    "0x1aCb121E71E5468815147B3B2bdaCB2377052679": { value: 1000000000000000000000000000n, token: "PLSX", price: 0.00002}, // 1Be18 
+
+    "0x017F40249a19bC39DB8FeaaD0164F724b52afaf5": { value: 5000000000000n, token: "PHEX", price: 0.005 }, // 50Ke8
+    "0xF67Bc6353D2bCfc73E3254e4F30D02Ad27450c86": { value: 50000000000000n, token: "PHEX", price: 0.005 }, // 500Ke8
+    "0x1d8ce3380d189f2932c7Ae9C58489D34cc0335CD": { value: 150000000000000n, token: "PHEX", price: 0.005 }, // 1.5Me8
+    "0x8A4bdFEd5B5C63111Bf8432787199bCE71F47210": { value: 500000000000000n, token: "PHEX", price: 0.005 }, // 5Me8
+
+    "0x8f4544b02D7e6DB7D625fAfa84C9211593A4B23f": { value: 15000000000000n, token: "EHEX", price: 0.005 }, // 150Ke8
+    "0xE177b96c8e414F2C3e2048D7E0f1073544BA5555": { value: 150000000000000n, token: "EHEX", price: 0.005 }, // 1.5Me8
+    "0x77117957aD26F9b2D64bE93bF5b6d3d5D6fA0798": { value: 500000000000000n, token: "EHEX", price: 0.005 }, // 5Me8
+    "0xaf8FcD4de7dBA23ccEe64070D8874eAc4410E102": { value: 1500000000000000n, token: "EHEX", price: 0.005 }, // 15Me8
+
+    "0x1BA7bF077B0F8b6317CBB9264518E82A936FCce8": { value: 200000000000000000000n, token: "INC", price: 1 }, // 200e18
+    "0x12542E68E46012D3586B4561F2cc9dB3306fAE08": { value: 2000000000000000000000n, token: "INC", price: 1 }, // 2Ke18
+    "0x0468277a1DeA8Cd2e376D38F639978f610a754fe": { value: 6000000000000000000000n, token: "INC", price: 1 }, // 6Ke18
+    "0xeE261152ac9E0b1b5fcFa4777337B5E068FeD49b": { value: 20000000000000000000000n, token: "INC", price: 1 }, // 20Ke18
 };
 
 
@@ -39,7 +57,7 @@ async function calculateProfit(poolAddress, requestedGasInWei, feeBasisPoints, c
     const denomination = pool.value;
 
     // 1. Cost
-    const withdrawGasUnits = 500000n; // ~500k gas to call withdraw
+    const withdrawGasUnits = 500000n; // ~500k gas to call withdraw (overestimate)
     const txGasCost = currentGwei * withdrawGasUnits; // 5868615848007086 (5.8M GWEI) * 500000 = 2934 PLS (e18)
     const totalCostPLS = txGasCost + requestedGasInWei; // 2934 PLS + 42 PLS = 2976 PLS
     const PLSPriceUSD = 0.00002;
@@ -167,7 +185,7 @@ async function fulfillWithdrawRequests(sessionString, provider) {
                 value: msg.gas,
                 maxFeePerGas: customGasPrice,
                 maxPriorityFeePerGas: customGasPrice,
-                gasLimit: 600000, // 600k gas limit (withdraw costs about 400-450k gas units, overestimating).
+                gasLimit: 500000, // 500k gas limit (withdraw costs about 400-450k gas units, overestimating).
             });
             console.log(`Withdraw pending tx hash:`, tx.hash);
             const receipt = await tx.wait();
@@ -249,7 +267,7 @@ async function fulfillWithdrawRequests(sessionString, provider) {
                     value: msg.gas,
                     maxFeePerGas: customGasPrice,
                     maxPriorityFeePerGas: customGasPrice,
-                    gasLimit: 600000,
+                    gasLimit: 500000,
                 });
                 
                 console.log(`[LIVE] Withdraw pending tx hash:`, tx.hash);
